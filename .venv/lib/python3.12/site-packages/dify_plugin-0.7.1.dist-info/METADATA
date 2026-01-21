@@ -1,0 +1,48 @@
+Metadata-Version: 2.1
+Name: dify_plugin
+Version: 0.7.1
+Summary: Dify Plugin SDK
+Keywords: dify,plugin,sdk
+Author-Email: langgenius <hello@dify.ai>
+License: Apache2.0
+Project-URL: Homepage, https://github.com/langgenius/dify-plugin-sdks.git
+Requires-Python: >=3.11
+Requires-Dist: Flask~=3.0.3
+Requires-Dist: Werkzeug~=3.1.4
+Requires-Dist: dpkt~=1.9.8
+Requires-Dist: gevent~=25.5.1
+Requires-Dist: httpx~=0.28.1
+Requires-Dist: pydantic_settings<3.0.0,>=2.5.0
+Requires-Dist: pydantic>=2.8.2
+Requires-Dist: pyyaml~=6.0.1
+Requires-Dist: requests~=2.32.3
+Requires-Dist: socksio==1.0.0
+Requires-Dist: tiktoken~=0.8.0
+Requires-Dist: yarl<2.0,>=1.9.4
+Requires-Dist: packaging>=25.0
+Description-Content-Type: text/markdown
+
+# Dify Plugin SDK
+
+A Python SDK for building plugins for Dify.
+
+## Version Management
+
+This SDK follows Semantic Versioning (a.b.c):
+
+- a: Major version - Indicates significant architectural changes or incompatible API modifications
+- b: Minor version - Indicates new feature additions while maintaining backward compatibility
+- c: Patch version - Indicates backward-compatible bug fixes
+
+### For SDK Users
+
+When depending on this SDK, it's recommended to specify version constraints that:
+
+- Allow patch and minor updates for bug fixes and new features
+- Prevent major version updates to avoid breaking changes
+
+Example in your project's dependency management:
+
+```python
+dify_plugin>=0.3.0,<0.5.0
+```

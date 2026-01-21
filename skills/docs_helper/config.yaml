@@ -1,0 +1,4 @@
+# Additional configuration for docs-helper skill
+allowed_tools:
+  - file_reader
+  - file_writer

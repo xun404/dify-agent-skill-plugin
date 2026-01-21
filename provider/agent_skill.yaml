@@ -1,0 +1,12 @@
+identity:
+  author: dify-skills
+  name: agent_skill_provider
+  icon: icon.svg
+  label:
+    en_US: Agent Skill Provider
+    zh_Hans: Agent 技能提供者
+  description:
+    en_US: Provides skill-based agent strategies for intelligent task execution
+    zh_Hans: 提供基于技能的代理策略，用于智能任务执行
+strategies:
+  - strategies/skill_agent.yaml

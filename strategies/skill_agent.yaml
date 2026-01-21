@@ -1,0 +1,57 @@
+identity:
+  name: skill_agent
+  author: dify-skills
+  label:
+    en_US: Skill-based Agent
+    zh_Hans: 技能代理
+  description:
+    en_US: An intelligent agent that uses multiple skills to handle user queries
+    zh_Hans: 使用多种技能处理用户查询的智能代理
+
+parameters:
+  - name: model
+    type: model-selector
+    scope: tool-call&llm
+    required: true
+    label:
+      en_US: Model
+      zh_Hans: 模型
+
+  - name: tools
+    type: array[tools]
+    required: false
+    label:
+      en_US: External Tools
+      zh_Hans: 外部工具
+
+  - name: query
+    type: string
+    required: true
+    label:
+      en_US: Query
+      zh_Hans: 查询
+
+  - name: enabled_skills
+    type: string
+    required: false
+    default: "all"
+    label:
+      en_US: Enabled Skills
+      zh_Hans: 启用的技能
+    placeholder:
+      en_US: "Comma-separated skill names or 'all'"
+      zh_Hans: "逗号分隔的技能名称或 'all'"
+
+  - name: maximum_iterations
+    type: number
+    required: false
+    default: 10
+    label:
+      en_US: Maximum Iterations
+      zh_Hans: 最大迭代次数
+    max: 50
+    min: 1
+
+extra:
+  python:
+    source: strategies/skill_agent.py

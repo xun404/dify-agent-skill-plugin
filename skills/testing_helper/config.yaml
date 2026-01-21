@@ -1,0 +1,5 @@
+# Additional configuration for testing-helper skill
+allowed_tools:
+  - code_interpreter
+  - file_reader
+  - shell_executor
