@@ -35,23 +35,62 @@ A Dify plugin that provides an intelligent agent strategy with support for multi
 - The uncompressed package size must be less than 50MB
 - Ensure `manifest.yaml` has proper `storage.size` configured if storage is enabled
 
-### For Development
+### Remote Debug (For Development)
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+This section explains how to use Dify's remote debugging feature to test the plugin during development. For more details, see the [official documentation](https://docs.dify.ai/zh/develop-plugin/features-and-specs/plugin-types/remote-debug-a-plugin).
 
-2. Configure debugging:
-   ```bash
-   cp .env.example .env
-   # Edit .env and fill in your debug key from Dify
-   ```
+#### 1. Install Dependencies
 
-3. Run the plugin:
-   ```bash
-   python -m main
-   ```
+```bash
+pip install -r requirements.txt
+```
+
+#### 2. Get Debug Key from Dify
+
+1. Open your Dify instance and navigate to **"Plugin Management"** page
+2. Click **"Debug Plugin"** button
+3. Copy the debug connection information:
+   - `REMOTE_INSTALL_URL` - The debug server address (e.g., `debug.dify.ai:5003` or your local server)
+   - `REMOTE_INSTALL_KEY` - Your unique debug key (UUID format)
+
+#### 3. Configure Environment Variables
+
+```bash
+# Copy the example env file
+cp .env.example .env
+```
+
+Edit `.env` and fill in your debug information:
+
+```bash
+INSTALL_METHOD=remote
+REMOTE_INSTALL_URL=debug.dify.ai:5003  # or your server address like 192.168.x.x:5003
+REMOTE_INSTALL_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # Your debug key
+```
+
+#### 4. Run the Plugin
+
+```bash
+python -m main
+```
+
+If successful, you should see output like:
+
+```
+INFO:dify_plugin.plugin:Installed agent: agent_skill_provider
+```
+
+#### 5. Verify Installation
+
+Go back to Dify's Plugin Management page. You should see the plugin listed with a **"debugging"** status. The plugin will now work in your Dify environment while running locally.
+
+#### Troubleshooting
+
+| Error | Solution |
+|-------|----------|
+| `ValidationError: 'description'` | Ensure `description` is a top-level field in strategy YAML, not inside `identity` |
+| Connection refused | Check `REMOTE_INSTALL_URL` matches your Dify server's debug port |
+| Invalid key | Regenerate the debug key from Dify's Plugin Management page |
 
 ## Usage
 
@@ -138,7 +177,58 @@ Instructions for the LLM when this skill is activated.
 | `tools` | array[tools] | No | - | External tools available to the agent |
 | `query` | string | Yes | - | User query to process |
 | `enabled_skills` | string | No | "all" | Comma-separated skill names or "all" |
+| `custom_skills` | string | No | - | YAML-formatted custom skill definitions |
 | `maximum_iterations` | number | No | 10 | Max tool call iterations |
+
+## Custom Skills Configuration
+
+You can define custom skills directly in the Dify interface using YAML format. This allows you to add new skills without modifying the plugin package.
+
+### Custom Skill Format
+
+```yaml
+- name: translation-helper
+  description: Helps translate text between languages
+  triggers:
+    - translate
+    - 翻译
+    - translation
+  priority: 5
+  category: language
+  instructions: |
+    # Translation Helper
+    
+    When the user asks for translation:
+    1. Identify the source and target languages
+    2. Provide accurate translations
+    3. Explain any nuances or alternative translations
+
+- name: sql-helper
+  description: Helps write and optimize SQL queries
+  triggers:
+    - sql
+    - database
+    - query
+  priority: 5
+  instructions: |
+    # SQL Helper
+    
+    Assist users with SQL-related tasks:
+    - Write efficient queries
+    - Optimize existing queries
+    - Explain query execution plans
+```
+
+### Custom Skill Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Unique identifier for the skill |
+| `description` | string | Yes | Brief description of the skill |
+| `triggers` | list | Yes | Keywords that activate this skill |
+| `priority` | int | No | Higher priority skills are selected first (default: 0) |
+| `category` | string | No | Optional category for organization |
+| `instructions` | string | Yes | Detailed instructions for the LLM |
 
 ## Development
 

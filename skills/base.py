@@ -131,15 +131,20 @@ class BaseSkill(ABC):
             if pattern.search(query_lower):
                 matched += 1
         
-        if not self._compiled_triggers:
+        if not self._compiled_triggers or matched == 0:
             return 0.0
         
-        # Base score from trigger matches
-        base_score = matched / len(self._compiled_triggers)
-        
-        # Boost score if multiple triggers match
-        if matched > 1:
-            base_score = min(1.0, base_score * 1.2)
+        # Any single match gives a base score of 0.5
+        # Multiple matches increase score up to 1.0
+        # This ensures skills with many triggers still activate on a single match
+        if matched == 1:
+            base_score = 0.5
+        elif matched == 2:
+            base_score = 0.7
+        elif matched >= 3:
+            base_score = min(1.0, 0.8 + (matched - 3) * 0.05)
+        else:
+            base_score = 0.0
         
         return base_score
     
@@ -221,4 +226,58 @@ class MarkdownSkill(BaseSkill):
     
     def get_system_prompt(self) -> str:
         """Return the markdown content as the system prompt."""
+        return self.content
+
+
+class ConfigSkill(BaseSkill):
+    """
+    A skill created from a configuration dictionary at runtime.
+    
+    This allows creating skills dynamically from user-provided
+    configuration in the Dify interface, without needing SKILL.md files.
+    
+    Example configuration:
+        {
+            "name": "my-skill",
+            "description": "My custom skill",
+            "triggers": ["keyword1", "keyword2"],
+            "priority": 5,
+            "category": "custom",
+            "instructions": "Detailed instructions for the LLM..."
+        }
+    """
+    
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> Optional["ConfigSkill"]:
+        """
+        Create a ConfigSkill from a configuration dictionary.
+        
+        Args:
+            config_dict: Dictionary with skill configuration
+            
+        Returns:
+            ConfigSkill instance, or None if configuration is invalid
+        """
+        try:
+            name = config_dict.get("name")
+            if not name:
+                return None
+            
+            skill_config = SkillConfig(
+                name=name,
+                description=config_dict.get("description", ""),
+                triggers=config_dict.get("triggers", []),
+                allowed_tools=config_dict.get("allowed_tools"),
+                priority=config_dict.get("priority", 0),
+                category=config_dict.get("category", "custom"),
+            )
+            
+            instructions = config_dict.get("instructions", "")
+            
+            return cls(config=skill_config, content=instructions)
+        except Exception:
+            return None
+    
+    def get_system_prompt(self) -> str:
+        """Return the instructions as the system prompt."""
         return self.content

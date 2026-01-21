@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 
-from skills.base import BaseSkill, MarkdownSkill, SkillConfig, SkillContext
+from skills.base import BaseSkill, MarkdownSkill, ConfigSkill, SkillConfig, SkillContext
 
 
 @dataclass
@@ -382,3 +382,72 @@ class SkillRegistry:
     
     def __contains__(self, name: str) -> bool:
         return name in self._skills
+    
+    def register_from_config(self, config_dict: Dict) -> Optional[BaseSkill]:
+        """
+        Register a skill from a configuration dictionary.
+        
+        Args:
+            config_dict: Dictionary with skill configuration
+            
+        Returns:
+            Registered skill instance, or None if registration failed
+        """
+        skill = ConfigSkill.from_dict(config_dict)
+        if skill:
+            self.register(skill)
+        return skill
+    
+    def register_from_yaml(self, yaml_string: str) -> tuple:
+        """
+        Register skills from a YAML string.
+        
+        The YAML should be a list of skill configurations:
+        
+        - name: skill-name
+          description: Skill description
+          triggers:
+            - keyword1
+            - keyword2
+          priority: 5
+          instructions: |
+            Skill instructions...
+        
+        Args:
+            yaml_string: YAML string containing skill configurations
+            
+        Returns:
+            Tuple of (count, error_message) where count is number of skills 
+            registered and error_message is None on success or a string on failure
+        """
+        if not yaml_string or not yaml_string.strip():
+            return (0, "Empty YAML string")
+        
+        try:
+            configs = yaml.safe_load(yaml_string)
+            if configs is None:
+                return (0, "YAML parsed to None")
+            
+            if not isinstance(configs, list):
+                # Single skill config
+                configs = [configs]
+            
+            count = 0
+            errors = []
+            for i, config in enumerate(configs):
+                if isinstance(config, dict):
+                    skill = self.register_from_config(config)
+                    if skill:
+                        count += 1
+                    else:
+                        errors.append(f"Config {i}: Failed to create skill from {config.get('name', 'unknown')}")
+                else:
+                    errors.append(f"Config {i}: Not a dict, got {type(config)}")
+            
+            if count == 0 and errors:
+                return (0, "; ".join(errors))
+            return (count, None)
+        except yaml.YAMLError as e:
+            return (0, f"YAML parse error: {str(e)}")
+        except Exception as e:
+            return (0, f"Unexpected error: {str(e)}")

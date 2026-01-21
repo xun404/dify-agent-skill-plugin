@@ -1,10 +1,10 @@
-version: 0.0.1
+version: 1.0.0
 type: plugin
-author: dify-skills
+author: xun404
 name: agent-skill-plugin
 label:
   en_US: Agent Skill Plugin
-  zh_Hans: Agent 技能插件
+  zh_Hans: Agent Skill技能插件
 description:
   en_US: An agent strategy plugin supporting multiple skills for intelligent task execution
   zh_Hans: 支持多种技能的智能代理策略插件，用于智能任务执行
@@ -29,7 +29,7 @@ resource:
       enabled: true
       size: 1048576
 meta:
-  version: 0.0.1
+  version: 1.0.0
   arch:
     - amd64
     - arm64

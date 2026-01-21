@@ -38,6 +38,8 @@ class SkillAgentParams(BaseModel):
     tools: Optional[List[ToolEntity]] = None
     query: str
     enabled_skills: str = "all"
+    custom_skills: str = ""
+    debug_mode: bool = False
     maximum_iterations: int = 10
 
 
@@ -67,12 +69,7 @@ When using tools:
 
 Always explain your reasoning and provide clear, actionable responses."""
 
-    def __init__(self):
-        """Initialize the agent strategy."""
-        super().__init__()
-        self._skill_registry: Optional[SkillRegistry] = None
-        self._skills_loaded = False
-    
+
     def _ensure_skills_loaded(self) -> SkillRegistry:
         """
         Ensure skills are loaded and return the registry.
@@ -80,7 +77,8 @@ Always explain your reasoning and provide clear, actionable responses."""
         Returns:
             Initialized SkillRegistry with loaded skills
         """
-        if self._skill_registry is None or not self._skills_loaded:
+        # Lazy initialization since we cannot override __init__
+        if not hasattr(self, '_skill_registry') or self._skill_registry is None:
             self._skill_registry = SkillRegistry()
             
             # Determine skills directory path
@@ -90,7 +88,6 @@ Always explain your reasoning and provide clear, actionable responses."""
             
             # Load skills
             count = self._skill_registry.load_from_directory(skills_dir)
-            self._skills_loaded = True
             
         return self._skill_registry
     
@@ -183,6 +180,43 @@ Always explain your reasoning and provide clear, actionable responses."""
         # Load skills
         registry = self._ensure_skills_loaded()
         
+        # Debug: show loaded skills count (only if debug_mode enabled)
+        if params.debug_mode:
+            all_skill_names = registry.list_skill_names()
+            yield self.create_text_message(
+                f"📚 Loaded {len(all_skill_names)} built-in skill(s): {', '.join(all_skill_names) if all_skill_names else 'none'}\n"
+            )
+        
+        # Load custom skills from parameter
+        custom_count = 0
+        if params.custom_skills:
+            if params.debug_mode:
+                yield self.create_text_message(
+                    f"🔧 Custom skills parameter received ({len(params.custom_skills)} chars)\n"
+                )
+            result = registry.register_from_yaml(params.custom_skills)
+            # Handle both old (int) and new (tuple) return types
+            if isinstance(result, tuple):
+                custom_count, error_msg = result
+                if error_msg:
+                    # Always show errors
+                    yield self.create_text_message(
+                        f"⚠️ Custom skills error: {error_msg}\n"
+                    )
+            else:
+                custom_count = result
+            
+            if custom_count > 0 and params.debug_mode:
+                # Show newly loaded skill names
+                all_names_after = registry.list_skill_names()
+                yield self.create_text_message(
+                    f"📦 Loaded {custom_count} custom skill(s). All skills now: {', '.join(all_names_after)}\n"
+                )
+        elif params.debug_mode:
+            yield self.create_text_message(
+                f"ℹ️ No custom skills parameter provided\n"
+            )
+        
         # Parse enabled skills filter
         skill_filter = self._parse_enabled_skills(params.enabled_skills)
         
@@ -198,9 +232,14 @@ Always explain your reasoning and provide clear, actionable responses."""
         if skill_prompt:
             system_parts.append("\n\n" + skill_prompt)
         if activated_skills:
-            # Log activated skills
+            # Log activated skills (only if debug_mode)
+            if params.debug_mode:
+                yield self.create_text_message(
+                    f"🎯 Activated skills: {', '.join(activated_skills)}\n\n"
+                )
+        elif params.debug_mode:
             yield self.create_text_message(
-                f"🎯 Activated skills: {', '.join(activated_skills)}\n\n"
+                f"ℹ️ No skills matched query: '{params.query[:100]}...'\n\n"
             )
         
         system_prompt = "".join(system_parts)
@@ -250,13 +289,8 @@ Always explain your reasoning and provide clear, actionable responses."""
             )
             yield model_log
             
-            # Prepare model config
-            model_config = LLMModelConfig(
-                provider=params.model.provider,
-                model=params.model.model,
-                model_parameters=params.model.model_parameters or {},
-                credentials=params.model.credentials or {}
-            )
+            # params.model is already an AgentModelConfig (extends LLMModelConfig)
+            # so we can pass it directly to the invoke method
             
             # Call LLM
             try:
@@ -264,7 +298,7 @@ Always explain your reasoning and provide clear, actionable responses."""
                 tool_calls = []
                 
                 for chunk in self.session.model.llm.invoke(
-                    model_config=model_config,
+                    model_config=params.model,
                     prompt_messages=messages,
                     tools=tool_defs if tool_defs else None,
                     stream=True
@@ -301,7 +335,7 @@ Always explain your reasoning and provide clear, actionable responses."""
                         data={"status": "completed", "response": response_text[:200]},
                         metadata={
                             "finished_at": time.perf_counter(),
-                            "total_time": time.perf_counter() - iteration_started
+                            "elapsed_time": time.perf_counter() - iteration_started
                         }
                     )
                     break
@@ -380,7 +414,7 @@ Always explain your reasoning and provide clear, actionable responses."""
                     },
                     metadata={
                         "finished_at": time.perf_counter(),
-                        "iteration_time": time.perf_counter() - iteration_started
+                        "elapsed_time": time.perf_counter() - iteration_started
                     }
                 )
                 

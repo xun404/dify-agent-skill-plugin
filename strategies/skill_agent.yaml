@@ -3,10 +3,11 @@ identity:
   author: dify-skills
   label:
     en_US: Skill-based Agent
-    zh_Hans: 技能代理
-  description:
-    en_US: An intelligent agent that uses multiple skills to handle user queries
-    zh_Hans: 使用多种技能处理用户查询的智能代理
+    zh_Hans: Skill技能代理
+
+description:
+  en_US: An intelligent agent that uses multiple skills to handle user queries
+  zh_Hans: 使用多种技能处理用户查询的智能代理
 
 parameters:
   - name: model
@@ -42,9 +43,43 @@ parameters:
       en_US: "Comma-separated skill names or 'all'"
       zh_Hans: "逗号分隔的技能名称或 'all'"
 
+  - name: custom_skills
+    type: string
+    required: false
+    label:
+      en_US: Custom Skills (YAML)
+      zh_Hans: 自定义技能 (YAML)
+    placeholder:
+      en_US: |
+        - name: my-skill
+          description: My custom skill
+          triggers:
+            - keyword1
+          instructions: |
+            Instructions for the skill...
+      zh_Hans: |
+        - name: my-skill
+          description: 我的自定义技能
+          triggers:
+            - 关键词1
+          instructions: |
+            技能的指令...
+    form: form
+
+  - name: debug_mode
+    type: boolean
+    required: false
+    default: false
+    label:
+      en_US: Debug Mode
+      zh_Hans: 调试模式
+    placeholder:
+      en_US: "Enable debug logging"
+      zh_Hans: "启用调试日志"
+
   - name: maximum_iterations
     type: number
-    required: false
+    required: true
     default: 10
     label:
       en_US: Maximum Iterations
