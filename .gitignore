@@ -1,0 +1,48 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+*~
+
+# Test and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Environment files (contains secrets)
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+*.difypkg
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+
+# Package lock files (optional, uncomment if needed)
+# poetry.lock
+# Pipfile.lock
