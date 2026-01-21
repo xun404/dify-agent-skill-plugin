@@ -178,6 +178,7 @@ Instructions for the LLM when this skill is activated.
 | `query` | string | Yes | - | User query to process |
 | `enabled_skills` | string | No | "all" | Comma-separated skill names or "all" |
 | `custom_skills` | string | No | - | YAML-formatted custom skill definitions |
+| `debug_mode` | boolean | No | false | Enable debug logging to show skill loading and matching info |
 | `maximum_iterations` | number | No | 10 | Max tool call iterations |
 
 ## Custom Skills Configuration
