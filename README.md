@@ -96,10 +96,19 @@ Define custom skills using YAML format in Dify interface:
 4. Configure model and tools
 5. Start chatting - skills activate automatically!
 
+## 🔑 Requirements
+
+- **Model**: An LLM model configured in the Agent application (required, no built-in credentials)
+- **Tools** (optional): Any Dify tools you want the agent to call (e.g. built-in tools, API tools)
+- **Network**: The plugin only communicates with your configured LLM provider and the tools you enable; it makes no other external calls
+- **No API keys required**: The plugin itself has no credentials to configure
+
+## 📦 Source Repository
+
+https://github.com/xun404/dify-agent-skill-plugin
+
 ## 📚 Documentation
 
-- [Development Guide](./DEVELOPMENT.md) - Installation, debugging, project structure
-- [Handover Notes](./HANDOVER.md) - Internal architecture, SDK contract, testing, release notes
 - [Privacy Policy](./PRIVACY.md) - Data handling explanation
 
 ---

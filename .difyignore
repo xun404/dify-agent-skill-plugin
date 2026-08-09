@@ -21,6 +21,8 @@ Thumbs.db
 
 # Git
 .git/
+.gitignore
+.github/
 
 # Test and coverage
 .pytest_cache/
@@ -30,9 +32,17 @@ tests/
 
 # Environment files
 .env
+.env.example
+
+# Development docs (not needed at runtime)
+DEVELOPMENT.md
+HANDOVER.md
 
 # Build artifacts
 *.difypkg
 dist/
 build/
 *.egg-info/
+
+# Self-exclusion: .difyignore is a build-time file, not a runtime file
+.difyignore

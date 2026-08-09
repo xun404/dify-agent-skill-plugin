@@ -1,4 +1,4 @@
-version: 1.0.0
+version: 1.0.1
 type: plugin
 author: xun404
 name: agent-skill-plugin
@@ -10,6 +10,7 @@ description:
   zh_Hans: 支持多种技能的智能代理策略插件，用于智能任务执行
 created_at: 2026-01-20T10:00:00Z
 icon: icon.svg
+privacy: PRIVACY.md
 resource:
   memory: 268435456
   permission:
@@ -29,7 +30,7 @@ resource:
       enabled: true
       size: 1048576
 meta:
-  version: 1.0.0
+  version: 1.0.1
   arch:
     - amd64
     - arm64
