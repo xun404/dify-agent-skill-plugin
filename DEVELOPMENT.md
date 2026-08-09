@@ -257,12 +257,16 @@ dify-agent-skill-plugin/
 ### Running Tests
 
 ```bash
-# Run unit tests
-pytest tests/
+# Run the agent strategy test suite (uses SDK-faithful stubs, no Dify runtime needed)
+python3 -m unittest tests.test_skill_agent -v
 
-# Run with coverage
-pytest --cov=skills tests/
+# Full discovery
+python3 -m unittest discover tests
 ```
+
+> **Note**: The tests run against `tests/stubs/` — a faithful Python 3.9
+> translation of the `dify_plugin` 0.7.1 API surface. The real SDK
+> requires Python 3.11+, which is why the stubs exist. See `HANDOVER.md`.
 
 ## Requirements
 

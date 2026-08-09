@@ -99,6 +99,7 @@ Define custom skills using YAML format in Dify interface:
 ## 📚 Documentation
 
 - [Development Guide](./DEVELOPMENT.md) - Installation, debugging, project structure
+- [Handover Notes](./HANDOVER.md) - Internal architecture, SDK contract, testing, release notes
 - [Privacy Policy](./PRIVACY.md) - Data handling explanation
 
 ---
