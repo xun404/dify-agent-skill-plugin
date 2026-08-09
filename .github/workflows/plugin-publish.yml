@@ -87,13 +87,12 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
-          # Ensure we are on the latest main branch
-          git fetch origin main
-          git checkout main
-          git pull origin main
-
-          # Create and switch to a new branch (marketplace convention)
-          git checkout -b "$BRANCH_NAME"
+          # Branch from the CURRENT upstream main, not the fork's main:
+          # the fork may be stale or have diverged history (upstream was
+          # rewritten), which breaks PR creation with "no history in common".
+          git remote add upstream https://github.com/langgenius/dify-plugins.git
+          git fetch upstream main
+          git checkout -b "$BRANCH_NAME" upstream/main
 
           # Commit only the plugin package (never sweep unrelated fork changes)
           git add "$AUTHOR/$PLUGIN_NAME/"
