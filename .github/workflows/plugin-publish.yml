@@ -1,21 +1,23 @@
-# .github/workflows/auto-pr.yml
+# .github/workflows/plugin-publish.yml
+# Auto-publishes the plugin to the Dify Marketplace on every push to main:
+# 1. Reads plugin info from manifest.yaml (name, version, author)
+# 2. Packages the plugin into <name>-<version>.difypkg with the Dify CLI
+# 3. Pushes the package to <author>/dify-plugins on branch
+#    bump-<name>-plugin-<version>
+# 4. Opens a PR against langgenius/dify-plugins
 name: Auto Create PR on Main Push
 
 on:
   push:
     branches: [ main ]  # Trigger on push to main
+  workflow_dispatch:    # Allow manual runs from the Actions tab
 
 jobs:
-  create_pr: # Renamed job for clarity
+  create_pr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Print working directory # Kept for debugging
-        run: |
-          pwd
-          ls -la
+        uses: actions/checkout@v4
 
       - name: Download CLI tool
         run: |
@@ -27,12 +29,7 @@ jobs:
           wget https://github.com/langgenius/dify-plugin-daemon/releases/latest/download/dify-plugin-linux-amd64
           chmod +x dify-plugin-linux-amd64
 
-          # Show download location and file
-          echo "CLI tool location:"
-          pwd
-          ls -la dify-plugin-linux-amd64
-
-      - name: Get basic info from manifest # Changed step name and content
+      - name: Get basic info from manifest
         id: get_basic_info
         run: |
           PLUGIN_NAME=$(grep "^name:" manifest.yaml | cut -d' ' -f2)
@@ -43,7 +40,7 @@ jobs:
           echo "Plugin version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-          # If the author's name is not your github username, you can change the author here
+          # The author in manifest.yaml must match your GitHub username
           AUTHOR=$(grep "^author:" manifest.yaml | cut -d' ' -f2)
           echo "Plugin author: $AUTHOR"
           echo "author=$AUTHOR" >> $GITHUB_OUTPUT
@@ -51,48 +48,39 @@ jobs:
       - name: Package Plugin
         id: package
         run: |
-          # Use the downloaded CLI tool to package
           cd $GITHUB_WORKSPACE
-          # Use variables for package name
           PACKAGE_NAME="${{ steps.get_basic_info.outputs.plugin_name }}-${{ steps.get_basic_info.outputs.version }}.difypkg"
-          # Use CLI from runner temp
           $RUNNER_TEMP/bin/dify-plugin-linux-amd64 plugin package . -o "$PACKAGE_NAME"
 
-          # Show packaging result
           echo "Package result:"
           ls -la "$PACKAGE_NAME"
           echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
 
-          # Show full file path and directory structure (kept for debugging)
-          echo "\\nFull file path:"
-          pwd
-          echo "\\nDirectory structure:"
-          tree || ls -R
-
       - name: Checkout target repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          # Use author variable for repository
-          repository: ${{steps.get_basic_info.outputs.author}}/dify-plugins
+          # The author's fork of the official dify-plugins repository
+          repository: ${{ steps.get_basic_info.outputs.author }}/dify-plugins
           path: dify-plugins
           token: ${{ secrets.PLUGIN_ACTION }}
           fetch-depth: 1 # Fetch only the last commit to speed up checkout
           persist-credentials: true # Persist credentials for subsequent git operations
 
-      - name: Prepare and create PR
+      - name: Prepare and push branch
+        env:
+          PLUGIN_NAME: ${{ steps.get_basic_info.outputs.plugin_name }}
+          VERSION: ${{ steps.get_basic_info.outputs.version }}
+          AUTHOR: ${{ steps.get_basic_info.outputs.author }}
         run: |
-          # Debug info (kept)
-          echo "Debug: Current directory $(pwd)"
-          # Use variable for package name
-          PACKAGE_NAME="${{ steps.get_basic_info.outputs.plugin_name }}-${{ steps.get_basic_info.outputs.version }}.difypkg"
-          echo "Debug: Package name: $PACKAGE_NAME"
-          ls -la
+          set -euo pipefail
 
-          # Move the packaged file to the target directory using variables
-          mkdir -p dify-plugins/${{ steps.get_basic_info.outputs.author }}/${{ steps.get_basic_info.outputs.plugin_name }}
-          mv "$PACKAGE_NAME" dify-plugins/${{ steps.get_basic_info.outputs.author }}/${{ steps.get_basic_info.outputs.plugin_name }}/
+          PACKAGE_NAME="$PLUGIN_NAME-$VERSION.difypkg"
+          BRANCH_NAME="bump-$PLUGIN_NAME-plugin-$VERSION"
 
-          # Enter the target repository directory
+          # Move the packaged file into the author/plugin directory
+          mkdir -p "dify-plugins/$AUTHOR/$PLUGIN_NAME"
+          mv "$PACKAGE_NAME" "dify-plugins/$AUTHOR/$PLUGIN_NAME/"
+
           cd dify-plugins
 
           # Configure git
@@ -104,40 +92,39 @@ jobs:
           git checkout main
           git pull origin main
 
-          # Create and switch to a new branch using variables and new naming convention
-          BRANCH_NAME="bump-${{ steps.get_basic_info.outputs.plugin_name }}-plugin-${{ steps.get_basic_info.outputs.version }}"
+          # Create and switch to a new branch (marketplace convention)
           git checkout -b "$BRANCH_NAME"
 
-          # Add and commit changes (using git add .)
-          git add .
-          git status # for debugging
-          # Use variables in commit message
-          git commit -m "bump ${{ steps.get_basic_info.outputs.plugin_name }} plugin to version ${{ steps.get_basic_info.outputs.version }}"
+          # Commit only the plugin package (never sweep unrelated fork changes)
+          git add "$AUTHOR/$PLUGIN_NAME/"
+          git commit -m "bump $PLUGIN_NAME plugin to version $VERSION"
 
-          # Push to remote (use force just in case the branch existed before from a failed run)
+          # Force push in case the branch exists from a previous failed run
           git push -u origin "$BRANCH_NAME" --force
 
-          # Confirm branch has been pushed and wait for sync (GitHub API might need a moment)
-          git branch -a
-          echo "Waiting for branch to sync..."
-          sleep 10  # Wait 10 seconds for branch sync
+          # Give the GitHub API a moment to sync the new branch
+          sleep 10
 
       - name: Create PR via GitHub API
         env:
-          GH_TOKEN: ${{ secrets.PLUGIN_ACTION }} # Use the provided token for authentication
+          GH_TOKEN: ${{ secrets.PLUGIN_ACTION }}
+          PLUGIN_NAME: ${{ steps.get_basic_info.outputs.plugin_name }}
+          VERSION: ${{ steps.get_basic_info.outputs.version }}
+          AUTHOR: ${{ steps.get_basic_info.outputs.author }}
+          HEAD_REF: "bump-${{ steps.get_basic_info.outputs.plugin_name }}-plugin-${{ steps.get_basic_info.outputs.version }}"
         run: |
-          gh pr create \
-            --repo langgenius/dify-plugins \
-            --head "${{ steps.get_basic_info.outputs.author }}:${{ steps.get_basic_info.outputs.plugin_name }}-${{ steps.get_basic_info.outputs.version }}" \
-            --base main \
-            --title "bump ${{ steps.get_basic_info.outputs.plugin_name }} plugin to version ${{ steps.get_basic_info.outputs.version }}" \
-            --body "bump ${{ steps.get_basic_info.outputs.plugin_name }} plugin package to version ${{ steps.get_basic_info.outputs.version }}
+          set -euo pipefail
 
-            Changes:
-            - Updated plugin package file" || echo "PR already exists or creation skipped." # Handle cases where PR already exists
-
-      - name: Print environment info # Kept for debugging
-        run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-          echo "Current directory contents:"
-          ls -R
+          PR_COUNT=$(gh pr list --repo langgenius/dify-plugins --head "$HEAD_REF" --state open --json number --jq 'length')
+          if [ "$PR_COUNT" -gt 0 ]; then
+            echo "PR for $HEAD_REF already exists; nothing to do."
+          else
+            BODY=$(printf 'bump %s plugin package to version %s\n\n## Plugin information\n- **Author**: %s\n- **Plugin name**: %s\n- **Version**: %s\n- **Source repository**: https://github.com/%s/dify-agent-skill-plugin\n\n## Submission type\n- [x] Version update\n\n## What changed\n- Updated plugin package file\n\n## Risk level\n- [x] High risk\n\n## Security and privacy notes\nThe plugin is an agent strategy: it runs user queries through a configurable LLM and may invoke user-configured tools (including code execution, file operations, or arbitrary URL fetching) based on LLM decisions. See PRIVACY.md in the package.' \
+              "$PLUGIN_NAME" "$VERSION" "$AUTHOR" "$PLUGIN_NAME" "$VERSION" "$AUTHOR")
+            gh pr create \
+              --repo langgenius/dify-plugins \
+              --head "$AUTHOR:$HEAD_REF" \
+              --base main \
+              --title "bump $PLUGIN_NAME plugin to version $VERSION" \
+              --body "$BODY"
+          fi
